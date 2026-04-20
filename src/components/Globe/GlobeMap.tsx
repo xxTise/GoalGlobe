@@ -13,6 +13,7 @@ import Map, { MapRef, NavigationControl } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Match } from "@/lib/types";
 import { Continent, getContinent } from "@/lib/continents";
+import { getQualityConfig } from "@/lib/quality";
 import { MatchMarker } from "./MatchMarker";
 import { MatchPanel } from "../MatchPanel/MatchPanel";
 import { Starfield } from "./Starfield";
@@ -33,7 +34,6 @@ const CONTINENT_ZOOM: Record<
   oceania: { center: [140, -25], zoom: 3.5 },
 };
 
-const ROTATION_SPEED = 0.03;
 const IDLE_RESUME_DELAY = 4000;
 
 interface GlobeMapProps {
@@ -52,6 +52,7 @@ export const GlobeMap = forwardRef<GlobeMapHandle, GlobeMapProps>(
     const mapRef = useRef<MapRef>(null);
     const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
     const prevContinentRef = useRef<Continent>(continent);
+    const quality = getQualityConfig();
 
     // Auto-rotation state
     const rotatingRef = useRef(true);
@@ -72,14 +73,14 @@ export const GlobeMap = forwardRef<GlobeMapHandle, GlobeMapProps>(
       mapRef.current?.flyTo({
         center: target.center,
         zoom: target.zoom,
-        duration: 1800,
+        duration: quality.flyDuration,
         essential: true,
       });
       if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
       if (continent === "all") {
         resumeTimerRef.current = setTimeout(() => {
           rotatingRef.current = true;
-        }, 2200);
+        }, quality.flyDuration + 400);
       }
     }
 
@@ -91,16 +92,16 @@ export const GlobeMap = forwardRef<GlobeMapHandle, GlobeMapProps>(
       const rotate = () => {
         if (rotatingRef.current && map.getZoom() < 3) {
           const center = map.getCenter();
-          map.setCenter([center.lng + ROTATION_SPEED, center.lat]);
+          map.setCenter([center.lng + quality.rotationSpeed, center.lat]);
         }
         rafRef.current = requestAnimationFrame(rotate);
       };
 
       rafRef.current = requestAnimationFrame(rotate);
       return () => cancelAnimationFrame(rafRef.current);
-    }, []);
+    }, [quality.rotationSpeed]);
 
-    // Pause rotation on user interaction, resume after idle
+    // Pause rotation on interaction
     const pauseRotation = useCallback(() => {
       rotatingRef.current = false;
       if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
@@ -119,10 +120,10 @@ export const GlobeMap = forwardRef<GlobeMapHandle, GlobeMapProps>(
       mapRef.current?.flyTo({
         center: [match.longitude, match.latitude],
         zoom: 14,
-        duration: 2000,
+        duration: quality.flyDuration,
         essential: true,
       });
-    }, []);
+    }, [quality.flyDuration]);
 
     useImperativeHandle(ref, () => ({ flyToMatch }), [flyToMatch]);
 
@@ -137,22 +138,21 @@ export const GlobeMap = forwardRef<GlobeMapHandle, GlobeMapProps>(
       mapRef.current?.flyTo({
         center: target.center,
         zoom: target.zoom,
-        duration: 1500,
+        duration: quality.flyDuration * 0.75,
         essential: true,
       });
       if (continent === "all") {
         if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
         resumeTimerRef.current = setTimeout(() => {
           rotatingRef.current = true;
-        }, 2000);
+        }, quality.flyDuration);
       }
-    }, [continent]);
+    }, [continent, quality.flyDuration]);
 
-    // Configure atmosphere on map load
+    // Atmosphere on map load
     const handleMapLoad = useCallback(() => {
       const map = mapRef.current?.getMap() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
       if (!map || typeof map.setFog !== "function") return;
-
       try {
         map.setFog({
           color: "rgba(6, 6, 15, 1)",
@@ -162,7 +162,7 @@ export const GlobeMap = forwardRef<GlobeMapHandle, GlobeMapProps>(
           "star-intensity": 0.0,
         });
       } catch {
-        // Fog API may not be available in all MapLibre versions
+        // Fog not available
       }
     }, []);
 
@@ -173,16 +173,12 @@ export const GlobeMap = forwardRef<GlobeMapHandle, GlobeMapProps>(
         <div className="relative z-[1] h-full w-full">
           <Map
             ref={mapRef}
-            initialViewState={{
-              longitude: 10,
-              latitude: 20,
-              zoom: 1.5,
-            }}
+            initialViewState={{ longitude: 10, latitude: 20, zoom: 1.5 }}
             mapStyle={MAP_STYLE}
             projection="globe"
             style={{ width: "100%", height: "100%" }}
             attributionControl={false}
-            maxPitch={60}
+            maxPitch={quality.maxPitch}
             onLoad={handleMapLoad}
             onMouseDown={pauseRotation}
             onTouchStart={pauseRotation}

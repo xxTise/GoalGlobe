@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Match } from "@/lib/types";
 import { useMatchDetail } from "@/hooks/useMatchDetail";
 import { Scoreboard } from "./Scoreboard";
-import { MatchStats } from "./MatchStats";
-import { MatchTimeline } from "./MatchTimeline";
-import { MatchLineups } from "./MatchLineups";
 import { DetailSkeleton } from "./DetailSkeleton";
+
+// Lazy-load tab content — not needed until user clicks a tab
+const MatchStats = lazy(() => import("./MatchStats").then(m => ({ default: m.MatchStats })));
+const MatchTimeline = lazy(() => import("./MatchTimeline").then(m => ({ default: m.MatchTimeline })));
+const MatchLineups = lazy(() => import("./MatchLineups").then(m => ({ default: m.MatchLineups })));
 
 type Tab = "timeline" | "stats" | "lineups";
 
@@ -136,32 +138,34 @@ export function MatchPanel({
                 ))}
               </div>
 
-              {/* ── Tab content (scrollable) ── */}
+              {/* ── Tab content (scrollable, lazy-loaded) ── */}
               <div className="flex-1 overflow-y-auto pb-6">
-                {activeTab === "timeline" && (
-                  <MatchTimeline match={match} />
-                )}
+                <Suspense fallback={<DetailSkeleton />}>
+                  {activeTab === "timeline" && (
+                    <MatchTimeline match={match} />
+                  )}
 
-                {activeTab === "stats" && (
-                  detailLoading ? (
-                    <DetailSkeleton />
-                  ) : (
-                    <MatchStats stats={detail?.stats ?? []} />
-                  )
-                )}
+                  {activeTab === "stats" && (
+                    detailLoading ? (
+                      <DetailSkeleton />
+                    ) : (
+                      <MatchStats stats={detail?.stats ?? []} />
+                    )
+                  )}
 
-                {activeTab === "lineups" && (
-                  detailLoading ? (
-                    <DetailSkeleton />
-                  ) : (
-                    <MatchLineups
-                      homeTeam={match.homeTeam}
-                      awayTeam={match.awayTeam}
-                      homeLineup={detail?.homeLineup ?? null}
-                      awayLineup={detail?.awayLineup ?? null}
-                    />
-                  )
-                )}
+                  {activeTab === "lineups" && (
+                    detailLoading ? (
+                      <DetailSkeleton />
+                    ) : (
+                      <MatchLineups
+                        homeTeam={match.homeTeam}
+                        awayTeam={match.awayTeam}
+                        homeLineup={detail?.homeLineup ?? null}
+                        awayLineup={detail?.awayLineup ?? null}
+                      />
+                    )
+                  )}
+                </Suspense>
               </div>
             </>
           )}

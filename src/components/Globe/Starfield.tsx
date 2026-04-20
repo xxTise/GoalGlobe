@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 
 /**
- * Canvas-based starfield that sits behind the map.
- * Visible around the globe edges at low zoom levels.
- * Uses a static render — no animation loop, no performance cost.
+ * Canvas-based starfield behind the map.
+ * Adapts star count to device capability.
+ * Static render — no animation loop, zero ongoing cost.
  */
-export function Starfield() {
+export const Starfield = memo(function Starfield() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -17,71 +17,78 @@ export function Starfield() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
+    const isMobile = window.innerWidth < 768;
+    const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1 : 2);
 
-    // Deep space background
-    ctx.fillStyle = "#04040c";
-    ctx.fillRect(0, 0, w, h);
+    function draw() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      canvas!.width = w * dpr;
+      canvas!.height = h * dpr;
+      ctx!.scale(dpr, dpr);
 
-    // Subtle radial glow in the center (where the globe sits)
-    const gradient = ctx.createRadialGradient(
-      w / 2, h / 2, 0,
-      w / 2, h / 2, Math.max(w, h) * 0.5
-    );
-    gradient.addColorStop(0, "rgba(15, 20, 40, 0.4)");
-    gradient.addColorStop(1, "transparent");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, w, h);
+      // Deep space background
+      ctx!.fillStyle = "#04040c";
+      ctx!.fillRect(0, 0, w, h);
 
-    // Stars — scattered small dots with varying opacity and size
-    const starCount = 300;
-    for (let i = 0; i < starCount; i++) {
-      const x = Math.random() * w;
-      const y = Math.random() * h;
-      const radius = Math.random() * 1.2 + 0.2;
-      const opacity = Math.random() * 0.6 + 0.1;
+      // Center glow
+      const gradient = ctx!.createRadialGradient(
+        w / 2, h / 2, 0,
+        w / 2, h / 2, Math.max(w, h) * 0.5
+      );
+      gradient.addColorStop(0, "rgba(15, 20, 40, 0.4)");
+      gradient.addColorStop(1, "transparent");
+      ctx!.fillStyle = gradient;
+      ctx!.fillRect(0, 0, w, h);
 
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(200, 210, 240, ${opacity})`;
-      ctx.fill();
+      // Stars — reduced on mobile
+      const starCount = isMobile ? 120 : 300;
+      for (let i = 0; i < starCount; i++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        const radius = Math.random() * 1.2 + 0.2;
+        const opacity = Math.random() * 0.6 + 0.1;
+        ctx!.beginPath();
+        ctx!.arc(x, y, radius, 0, Math.PI * 2);
+        ctx!.fillStyle = `rgba(200, 210, 240, ${opacity})`;
+        ctx!.fill();
+      }
+
+      // Bright stars — fewer on mobile, skip glow effect
+      const brightCount = isMobile ? 6 : 15;
+      for (let i = 0; i < brightCount; i++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        const radius = Math.random() * 1.5 + 0.8;
+        ctx!.beginPath();
+        ctx!.arc(x, y, radius, 0, Math.PI * 2);
+        ctx!.fillStyle = "rgba(220, 230, 255, 0.7)";
+        ctx!.fill();
+
+        if (!isMobile) {
+          const glow = ctx!.createRadialGradient(x, y, 0, x, y, radius * 4);
+          glow.addColorStop(0, "rgba(180, 200, 255, 0.15)");
+          glow.addColorStop(1, "transparent");
+          ctx!.fillStyle = glow;
+          ctx!.fillRect(x - radius * 4, y - radius * 4, radius * 8, radius * 8);
+        }
+      }
     }
 
-    // A few brighter stars
-    for (let i = 0; i < 15; i++) {
-      const x = Math.random() * w;
-      const y = Math.random() * h;
-      const radius = Math.random() * 1.5 + 0.8;
+    draw();
 
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(220, 230, 255, 0.7)";
-      ctx.fill();
-
-      // Soft glow around bright stars
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, radius * 4);
-      glow.addColorStop(0, "rgba(180, 200, 255, 0.15)");
-      glow.addColorStop(1, "transparent");
-      ctx.fillStyle = glow;
-      ctx.fillRect(x - radius * 4, y - radius * 4, radius * 8, radius * 8);
-    }
-
-    // Resize handler
+    // Debounced resize
+    let resizeTimer: ReturnType<typeof setTimeout>;
     const onResize = () => {
-      const nw = window.innerWidth;
-      const nh = window.innerHeight;
-      canvas.width = nw * dpr;
-      canvas.height = nh * dpr;
-      // Re-render is not critical — the canvas stretches fine
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(draw, 500);
     };
 
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeTimer);
+    };
   }, []);
 
   return (
@@ -91,4 +98,4 @@ export function Starfield() {
       style={{ width: "100%", height: "100%" }}
     />
   );
-}
+});
