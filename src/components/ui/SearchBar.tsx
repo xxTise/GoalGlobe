@@ -6,6 +6,7 @@ import { Match } from "@/lib/types";
 interface SearchBarProps {
   matches: Match[];
   onSelect: (match: Match) => void;
+  onOpenChange?: (open: boolean) => void;
 }
 
 interface SearchResult {
@@ -15,8 +16,13 @@ interface SearchResult {
   type: "team" | "league" | "stadium";
 }
 
-export function SearchBar({ matches, onSelect }: SearchBarProps) {
+export function SearchBar({ matches, onSelect, onOpenChange }: SearchBarProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  const setOpen = useCallback((open: boolean) => {
+    setIsOpen(open);
+    onOpenChange?.(open);
+  }, [onOpenChange]);
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -26,10 +32,10 @@ export function SearchBar({ matches, onSelect }: SearchBarProps) {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        setIsOpen(true);
+        setOpen(true);
       }
       if (e.key === "Escape") {
-        setIsOpen(false);
+        setOpen(false);
         setQuery("");
       }
     };
@@ -110,7 +116,7 @@ export function SearchBar({ matches, onSelect }: SearchBarProps) {
   const handleSelect = useCallback(
     (result: SearchResult) => {
       onSelect(result.match);
-      setIsOpen(false);
+      setOpen(false);
       setQuery("");
     },
     [onSelect]
@@ -120,7 +126,7 @@ export function SearchBar({ matches, onSelect }: SearchBarProps) {
     <>
       {/* Trigger button */}
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => setOpen(true)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.06] hover:bg-white/[0.08] transition-colors cursor-pointer"
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-zinc-500">
@@ -139,7 +145,7 @@ export function SearchBar({ matches, onSelect }: SearchBarProps) {
           className="fixed inset-0 z-50 flex items-start justify-center pt-[28vh]"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
-              setIsOpen(false);
+              setOpen(false);
               setQuery("");
             }
           }}
@@ -169,7 +175,7 @@ export function SearchBar({ matches, onSelect }: SearchBarProps) {
               <kbd
                 className="text-[10px] text-zinc-600 bg-white/[0.05] px-1.5 py-0.5 rounded font-mono cursor-pointer"
                 onClick={() => {
-                  setIsOpen(false);
+                  setOpen(false);
                   setQuery("");
                 }}
               >
@@ -238,7 +244,7 @@ export function SearchBar({ matches, onSelect }: SearchBarProps) {
             <div className="px-4 py-3 border-t border-white/[0.06]">
               <button
                 onClick={() => {
-                  setIsOpen(false);
+                  setOpen(false);
                   setQuery("");
                 }}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-colors cursor-pointer"

@@ -12,6 +12,7 @@ interface HeaderProps {
   onLiveClick: () => void;
   onSearchSelect: (match: Match) => void;
   onToggleFavoritesFilter: () => void;
+  onSearchOpenChange?: (open: boolean) => void;
 }
 
 export function Header({
@@ -23,6 +24,7 @@ export function Header({
   onLiveClick,
   onSearchSelect,
   onToggleFavoritesFilter,
+  onSearchOpenChange,
 }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-20 pointer-events-none">
@@ -43,7 +45,7 @@ export function Header({
         {/* Controls */}
         <div className="pointer-events-auto flex items-center gap-2 sm:gap-3">
           {/* Search */}
-          <SearchBar matches={matches} onSelect={onSearchSelect} />
+          <SearchBar matches={matches} onSelect={onSearchSelect} onOpenChange={onSearchOpenChange} />
 
           {/* Favorites filter */}
           {favoritesCount > 0 && (

@@ -26,6 +26,7 @@ export default function Home() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [livePanelOpen, setLivePanelOpen] = useState(false);
   const [followingPanelOpen, setFollowingPanelOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Apply all filters (pass isMatchRelevant for "Following" filter)
   const displayMatches = useMemo(
@@ -102,15 +103,18 @@ export default function Home() {
         onToggleFavoritesFilter={() =>
           setFilters((f) => ({ ...f, favoritesOnly: !f.favoritesOnly }))
         }
+        onSearchOpenChange={setSearchOpen}
       />
 
-      <SmartFilters
-        matches={matches}
-        filters={filters}
-        onFiltersChange={setFilters}
-        favoritesCount={favorites.size}
-        followingCount={following.totalCount}
-      />
+      {!searchOpen && (
+        <SmartFilters
+          matches={matches}
+          filters={filters}
+          onFiltersChange={setFilters}
+          favoritesCount={favorites.size}
+          followingCount={following.totalCount}
+        />
+      )}
 
       <GlobeMap
         ref={globeRef}
