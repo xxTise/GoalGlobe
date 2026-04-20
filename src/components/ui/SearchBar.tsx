@@ -18,11 +18,13 @@ interface SearchResult {
 
 export function SearchBar({ matches, onSelect, onOpenChange }: SearchBarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
 
   const setOpen = useCallback((open: boolean) => {
     setIsOpen(open);
-    onOpenChange?.(open);
-  }, [onOpenChange]);
+    onOpenChangeRef.current?.(open);
+  }, []);
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
