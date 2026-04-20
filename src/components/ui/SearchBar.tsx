@@ -136,7 +136,7 @@ export function SearchBar({ matches, onSelect }: SearchBarProps) {
       {/* Modal overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
+          className="fixed inset-0 z-50 flex items-start justify-center pt-[28vh]"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setIsOpen(false);
