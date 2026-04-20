@@ -168,6 +168,7 @@ export default function Home() {
         isFollowing={following.isFollowing}
         onFollow={following.follow}
         onUnfollow={following.unfollow}
+        onMatchSelect={handleSearchSelect}
       />
 
       {/* Onboarding modal — first visit only */}
