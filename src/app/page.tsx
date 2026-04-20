@@ -6,9 +6,12 @@ import { Header } from "@/components/ui/Header";
 import { SmartFilters } from "@/components/Filters/SmartFilters";
 import { ContinentPicker } from "@/components/ui/ContinentPicker";
 import { LivePanel } from "@/components/LivePanel/LivePanel";
+import { FollowingPanel } from "@/components/Following/FollowingPanel";
+import { OnboardingModal } from "@/components/Following/OnboardingModal";
 import { LoadingGlobe } from "@/components/ui/LoadingGlobe";
 import { useMatches } from "@/hooks/useMatches";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useFollowing } from "@/hooks/useFollowing";
 import { Continent, getContinent } from "@/lib/continents";
 import { Match } from "@/lib/types";
 import { FilterState, DEFAULT_FILTERS, filterMatches } from "@/lib/filters";
@@ -17,15 +20,17 @@ export default function Home() {
   const { matches, isLoading, isDemo, source, apiCallsToday, refresh } =
     useMatches();
   const { favorites, toggle: toggleFavorite } = useFavorites();
+  const following = useFollowing();
   const globeRef = useRef<GlobeMapHandle>(null);
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [livePanelOpen, setLivePanelOpen] = useState(false);
+  const [followingPanelOpen, setFollowingPanelOpen] = useState(false);
 
-  // Apply all filters
+  // Apply all filters (pass isMatchRelevant for "Following" filter)
   const displayMatches = useMemo(
-    () => filterMatches(matches, filters, favorites),
-    [matches, filters, favorites]
+    () => filterMatches(matches, filters, favorites, following.isMatchRelevant),
+    [matches, filters, favorites, following.isMatchRelevant]
   );
 
   const liveCount = useMemo(
@@ -35,7 +40,6 @@ export default function Home() {
     [displayMatches]
   );
 
-  // Match counts per continent for the picker
   const matchCounts = useMemo(() => {
     const counts: Record<Continent, number> = {
       all: displayMatches.length,
@@ -53,15 +57,13 @@ export default function Home() {
     return counts;
   }, [displayMatches]);
 
-  const handleContinentChange = useCallback(
-    (c: Continent) => {
-      setFilters((f) => ({ ...f, continent: c, country: "" }));
-    },
-    []
-  );
+  const handleContinentChange = useCallback((c: Continent) => {
+    setFilters((f) => ({ ...f, continent: c, country: "" }));
+  }, []);
 
   const handleSearchSelect = useCallback((match: Match) => {
     setLivePanelOpen(false);
+    setFollowingPanelOpen(false);
     globeRef.current?.flyToMatch(match);
   }, []);
 
@@ -72,7 +74,20 @@ export default function Home() {
     }, 150);
   }, []);
 
+  const isFollowingTeam = useCallback(
+    (name: string) => following.isFollowing("team", name),
+    [following]
+  );
+
+  const isFollowingLeague = useCallback(
+    (id: string) => following.isFollowing("league", id),
+    [following]
+  );
+
   if (isLoading) return <LoadingGlobe />;
+
+  // Show onboarding on first visit (after data loads)
+  const showOnboarding = !following.onboarded && matches.length > 0;
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#06060f]">
@@ -94,6 +109,7 @@ export default function Home() {
         filters={filters}
         onFiltersChange={setFilters}
         favoritesCount={favorites.size}
+        followingCount={following.totalCount}
       />
 
       <GlobeMap
@@ -102,6 +118,10 @@ export default function Home() {
         continent={filters.continent}
         favorites={favorites}
         onToggleFavorite={toggleFavorite}
+        isFollowingTeam={isFollowingTeam}
+        isFollowingLeague={isFollowingLeague}
+        onFollowItem={following.follow}
+        onUnfollowItem={following.unfollow}
       />
 
       <ContinentPicker
@@ -110,12 +130,52 @@ export default function Home() {
         matchCounts={matchCounts}
       />
 
+      {/* Following button — fixed left side */}
+      <button
+        onClick={() => setFollowingPanelOpen(true)}
+        className="fixed left-4 sm:left-8 top-[76px] z-20 flex items-center gap-2 px-3 py-2 rounded-xl bg-[#0a0a16]/85 backdrop-blur-2xl border border-white/[0.05] shadow-lg shadow-black/20 text-zinc-400 hover:text-white transition-colors cursor-pointer pointer-events-auto"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <line x1="19" y1="8" x2="19" y2="14" />
+          <line x1="22" y1="11" x2="16" y2="11" />
+        </svg>
+        <span className="text-[11px] font-medium hidden sm:inline">Following</span>
+        {following.totalCount > 0 && (
+          <span className="text-[9px] tabular-nums bg-white/[0.08] px-1.5 py-0.5 rounded-full text-zinc-300">
+            {following.totalCount}
+          </span>
+        )}
+      </button>
+
       <LivePanel
         matches={displayMatches}
         isOpen={livePanelOpen}
         onClose={() => setLivePanelOpen(false)}
         onMatchSelect={handleLiveMatchSelect}
       />
+
+      <FollowingPanel
+        isOpen={followingPanelOpen}
+        onClose={() => setFollowingPanelOpen(false)}
+        matches={matches}
+        items={following.items}
+        isFollowing={following.isFollowing}
+        onFollow={following.follow}
+        onUnfollow={following.unfollow}
+      />
+
+      {/* Onboarding modal — first visit only */}
+      {showOnboarding && (
+        <OnboardingModal
+          matches={matches}
+          isFollowing={following.isFollowing}
+          onFollow={following.follow}
+          onUnfollow={following.unfollow}
+          onComplete={following.completeOnboarding}
+        />
+      )}
 
       {/* Data source badge */}
       <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">

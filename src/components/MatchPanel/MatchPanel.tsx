@@ -2,7 +2,9 @@
 
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Match } from "@/lib/types";
+import { FollowItem, FollowableType } from "@/hooks/useFollowing";
 import { useMatchDetail } from "@/hooks/useMatchDetail";
+import { FollowButton } from "../Following/FollowButton";
 import { Scoreboard } from "./Scoreboard";
 import { DetailSkeleton } from "./DetailSkeleton";
 
@@ -18,6 +20,10 @@ interface MatchPanelProps {
   onClose: () => void;
   isFavorite: boolean;
   onToggleFavorite: (matchId: string) => void;
+  isFollowingTeam: (name: string) => boolean;
+  isFollowingLeague: (id: string) => boolean;
+  onFollowItem: (item: FollowItem) => void;
+  onUnfollowItem: (type: FollowableType, id: string) => void;
 }
 
 export function MatchPanel({
@@ -25,6 +31,10 @@ export function MatchPanel({
   onClose,
   isFavorite,
   onToggleFavorite,
+  isFollowingTeam,
+  isFollowingLeague,
+  onFollowItem,
+  onUnfollowItem,
 }: MatchPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("timeline");
   const { detail, isLoading: detailLoading } = useMatchDetail(match?.id ?? null);
@@ -117,6 +127,58 @@ export function MatchPanel({
 
               {/* ── Scoreboard ── */}
               <Scoreboard match={match} />
+
+              {/* ── Follow buttons ── */}
+              <div className="flex items-center justify-center gap-2 px-6 pb-4 flex-wrap">
+                <FollowButton
+                  type="team"
+                  id={match.homeTeam}
+                  name={match.homeTeam}
+                  logo={match.homeLogo}
+                  isFollowing={isFollowingTeam(match.homeTeam)}
+                  onFollow={() =>
+                    onFollowItem({
+                      type: "team",
+                      id: match.homeTeam,
+                      name: match.homeTeam,
+                      logo: match.homeLogo,
+                    })
+                  }
+                  onUnfollow={() => onUnfollowItem("team", match.homeTeam)}
+                />
+                <FollowButton
+                  type="team"
+                  id={match.awayTeam}
+                  name={match.awayTeam}
+                  logo={match.awayLogo}
+                  isFollowing={isFollowingTeam(match.awayTeam)}
+                  onFollow={() =>
+                    onFollowItem({
+                      type: "team",
+                      id: match.awayTeam,
+                      name: match.awayTeam,
+                      logo: match.awayLogo,
+                    })
+                  }
+                  onUnfollow={() => onUnfollowItem("team", match.awayTeam)}
+                />
+                <FollowButton
+                  type="league"
+                  id={String(match.leagueId)}
+                  name={match.league}
+                  isFollowing={isFollowingLeague(String(match.leagueId))}
+                  onFollow={() =>
+                    onFollowItem({
+                      type: "league",
+                      id: String(match.leagueId),
+                      name: match.league,
+                    })
+                  }
+                  onUnfollow={() =>
+                    onUnfollowItem("league", String(match.leagueId))
+                  }
+                />
+              </div>
 
               {/* ── Divider ── */}
               <div className="h-px bg-white/[0.04] mx-6" />

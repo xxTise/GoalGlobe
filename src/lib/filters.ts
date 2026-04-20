@@ -20,6 +20,7 @@ export interface FilterState {
   // Quick toggles
   topLeaguesOnly: boolean;
   favoritesOnly: boolean;
+  followingOnly: boolean;
   hideFriendlies: boolean;
   hasGoals: boolean;
   hasRedCard: boolean;
@@ -33,6 +34,7 @@ export const DEFAULT_FILTERS: FilterState = {
   search: "",
   topLeaguesOnly: false,
   favoritesOnly: false,
+  followingOnly: false,
   hideFriendlies: false,
   hasGoals: false,
   hasRedCard: false,
@@ -50,6 +52,7 @@ export function activeFilterCount(filters: FilterState): number {
   if (filters.search) count++;
   if (filters.topLeaguesOnly) count++;
   if (filters.favoritesOnly) count++;
+  if (filters.followingOnly) count++;
   if (filters.hideFriendlies) count++;
   if (filters.hasGoals) count++;
   if (filters.hasRedCard) count++;
@@ -64,7 +67,8 @@ export function activeFilterCount(filters: FilterState): number {
 export function filterMatches(
   matches: Match[],
   filters: FilterState,
-  favorites: Set<string>
+  favorites: Set<string>,
+  isMatchRelevant?: (match: Match) => boolean
 ): Match[] {
   const {
     statuses,
@@ -74,6 +78,7 @@ export function filterMatches(
     search,
     topLeaguesOnly,
     favoritesOnly,
+    followingOnly,
     hideFriendlies,
     hasGoals,
     hasRedCard,
@@ -123,6 +128,9 @@ export function filterMatches(
 
     // Favorites
     if (favoritesOnly && !favorites.has(m.id)) return false;
+
+    // Following
+    if (followingOnly && isMatchRelevant && !isMatchRelevant(m)) return false;
 
     // Hide friendlies
     if (hideFriendlies && m.categories.includes("friendly")) return false;

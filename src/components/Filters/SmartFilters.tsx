@@ -10,6 +10,7 @@ interface SmartFiltersProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
   favoritesCount: number;
+  followingCount: number;
 }
 
 export function SmartFilters({
@@ -17,6 +18,7 @@ export function SmartFilters({
   filters,
   onFiltersChange,
   favoritesCount,
+  followingCount,
 }: SmartFiltersProps) {
   const activeCount = activeFilterCount(filters);
 
@@ -51,7 +53,7 @@ export function SmartFilters({
   );
 
   const toggleBool = useCallback(
-    (key: "topLeaguesOnly" | "favoritesOnly" | "hideFriendlies" | "hasGoals" | "hasRedCard") => {
+    (key: "topLeaguesOnly" | "favoritesOnly" | "followingOnly" | "hideFriendlies" | "hasGoals" | "hasRedCard") => {
       onFiltersChange({ ...filters, [key]: !filters[key] });
     },
     [filters, onFiltersChange]
@@ -66,6 +68,7 @@ export function SmartFilters({
       search: "",
       topLeaguesOnly: false,
       favoritesOnly: false,
+      followingOnly: false,
       hideFriendlies: false,
       hasGoals: false,
       hasRedCard: false,
@@ -117,6 +120,16 @@ export function SmartFilters({
               onClick={() => toggleBool("topLeaguesOnly")}
               color="amber"
             />
+
+            {followingCount > 0 && (
+              <FilterChip
+                label="Following"
+                active={filters.followingOnly}
+                onClick={() => toggleBool("followingOnly")}
+                count={followingCount}
+                color="amber"
+              />
+            )}
 
             {favoritesCount > 0 && (
               <FilterChip

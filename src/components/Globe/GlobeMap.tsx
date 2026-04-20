@@ -12,6 +12,7 @@ import {
 import Map, { MapRef, NavigationControl } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Match } from "@/lib/types";
+import { FollowItem, FollowableType } from "@/hooks/useFollowing";
 import { Continent, getContinent } from "@/lib/continents";
 import { getQualityConfig } from "@/lib/quality";
 import { MatchMarker } from "./MatchMarker";
@@ -41,6 +42,10 @@ interface GlobeMapProps {
   continent: Continent;
   favorites: Set<string>;
   onToggleFavorite: (matchId: string) => void;
+  isFollowingTeam: (name: string) => boolean;
+  isFollowingLeague: (id: string) => boolean;
+  onFollowItem: (item: FollowItem) => void;
+  onUnfollowItem: (type: FollowableType, id: string) => void;
 }
 
 export interface GlobeMapHandle {
@@ -48,7 +53,7 @@ export interface GlobeMapHandle {
 }
 
 export const GlobeMap = forwardRef<GlobeMapHandle, GlobeMapProps>(
-  function GlobeMap({ matches, continent, favorites, onToggleFavorite }, ref) {
+  function GlobeMap({ matches, continent, favorites, onToggleFavorite, isFollowingTeam, isFollowingLeague, onFollowItem, onUnfollowItem }, ref) {
     const mapRef = useRef<MapRef>(null);
     const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
     const prevContinentRef = useRef<Continent>(continent);
@@ -202,6 +207,10 @@ export const GlobeMap = forwardRef<GlobeMapHandle, GlobeMapProps>(
           onClose={handleClose}
           isFavorite={selectedMatch ? favorites.has(selectedMatch.id) : false}
           onToggleFavorite={onToggleFavorite}
+          isFollowingTeam={isFollowingTeam}
+          isFollowingLeague={isFollowingLeague}
+          onFollowItem={onFollowItem}
+          onUnfollowItem={onUnfollowItem}
         />
       </div>
     );
